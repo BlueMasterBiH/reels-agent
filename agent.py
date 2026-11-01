@@ -56,7 +56,7 @@ GRAPH = f"https://graph.facebook.com/{GRAPH_VERSION}"
 ONLINE_FOLLOWERS_TZ = ZoneInfo(env("ONLINE_FOLLOWERS_TZ", "America/Los_Angeles"))
 CLAUDE_MODEL = env("CLAUDE_MODEL", "claude-opus-5-5")
 DRY_RUN = env("DRY_RUN", "0") == "1"
-FORCE_POST = env("FORCE_POST", "0") == "1"
+FORCE_POST = env("FORCE_POST", "0") == "1" or DRY_RUN  # probni rad ne čeka raspored
 
 DRIVE_FOLDERS = [f.strip() for f in env("DRIVE_FOLDER_IDS", "").split(",") if f.strip()]
 
@@ -104,8 +104,29 @@ def ig_token() -> str:
     return env("IG_ACCESS_TOKEN")
 
 
+_IG_USER_ID: str | None = None
+
+
 def ig_user() -> str:
-    return env("IG_USER_ID")
+    """IG_USER_ID iz secreta, ili automatski iz tokena (Facebook stranica -> povezani Instagram)."""
+    global _IG_USER_ID
+    if _IG_USER_ID:
+        return _IG_USER_ID
+    configured = os.environ.get("IG_USER_ID", "").strip()
+    if configured:
+        _IG_USER_ID = configured
+        return configured
+    pages = graph("GET", "me/accounts", fields="name,instagram_business_account{id,username}")["data"]
+    linked = [p for p in pages if p.get("instagram_business_account")]
+    if not linked:
+        raise RuntimeError(
+            f"Token ne vidi nijednu Facebook stranicu s povezanim Instagramom (stranice: "
+            f"{[p.get('name') for p in pages]}). Dodijeli stranicu system useru (Assign assets -> Pages)."
+        )
+    ig = linked[0]["instagram_business_account"]
+    log(f"Pronađen Instagram nalog @{ig.get('username')} (IG_USER_ID={ig['id']}, stranica: {linked[0]['name']})")
+    _IG_USER_ID = ig["id"]
+    return _IG_USER_ID
 
 
 def graph(method: str, path: str, **params) -> dict:
@@ -549,6 +570,7 @@ def maybe_post(state: dict, now: datetime, now_local: datetime) -> None:
 def main() -> int:
     if len(DRIVE_FOLDERS) == 0:
         raise SystemExit("DRIVE_FOLDER_IDS nije postavljen")
+    log(f"Instagram IG_USER_ID: {ig_user()}")
     state = load_state()
     now = datetime.now(timezone.utc)
     now_local = now.astimezone(LOCAL_TZ)

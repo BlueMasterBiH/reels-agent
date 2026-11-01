@@ -56,7 +56,7 @@ U repou otvori **Settings → Secrets and variables → Actions** i dodaj:
 | Secret | Vrijednost |
 |---|---|
 | `IG_ACCESS_TOKEN` | token iz koraka 1 |
-| `IG_USER_ID` | Instagram business account ID |
+| `IG_USER_ID` | *(opcionalno)* Instagram business account ID - ako ga nema, agent ga sam nađe preko tokena i ispiše u logu |
 | `GDRIVE_SA_JSON` | cijeli sadržaj JSON ključa service accounta |
 | `ANTHROPIC_API_KEY` | Claude API ključ |
 | `SMTP_USER` | Gmail adresa s koje se šalje |
