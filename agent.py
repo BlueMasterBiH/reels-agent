@@ -153,8 +153,7 @@ def get_views(media_id: str) -> int:
     return insight_value(data[0]) if data else 0
 
 
-def publish_trial_reel(video: Path, caption: str) -> dict:
-    """Resumable upload lokalnog fajla kao trial reel (graduation: MANUAL)."""
+def _create_container(caption: str) -> tuple[str, str]:
     container = graph(
         "POST",
         f"{ig_user()}/media",
@@ -163,26 +162,55 @@ def publish_trial_reel(video: Path, caption: str) -> dict:
         caption=caption,
         trial_params=json.dumps({"graduation_strategy": "MANUAL"}),
     )
-    container_id = container["id"]
-    upload_uri = container.get("uri") or (
-        f"https://rupload.facebook.com/ig-api-upload/{GRAPH_VERSION}/{container_id}"
-    )
-    size = video.stat().st_size
-    log(f"Upload {video.name} ({size / 1e6:.1f} MB) -> container {container_id}")
+    cid = container["id"]
+    uri = container.get("uri") or f"https://rupload.facebook.com/ig-api-upload/{GRAPH_VERSION}/{cid}"
+    return cid, uri
+
+
+def _upload_chunked(uri: str, body: bytes, chunk: int = 4 * 1024 * 1024) -> requests.Response:
+    offset, r = 0, None
+    while offset < len(body):
+        part = body[offset:offset + chunk]
+        r = requests.post(
+            uri,
+            headers={"Authorization": f"OAuth {ig_token()}", "offset": str(offset), "file_size": str(len(body))},
+            data=part,
+            timeout=600,
+        )
+        if r.status_code >= 400:
+            return r
+        offset += len(part)
+    return r
+
+
+def publish_trial_reel(video: Path, caption: str) -> dict:
+    """Resumable upload lokalnog fajla kao trial reel (graduation: MANUAL).
+    Instagramov upload server povremeno vrati ProcessingFailedError, pa se pokušava više puta,
+    svaki put s novim kontejnerom, naizmjenično cijeli fajl i u dijelovima."""
     body = video.read_bytes()  # cijeli fajl odjednom (max ~280 MB)
-    r = requests.post(
-        upload_uri,
-        headers={
-            "Authorization": f"OAuth {ig_token()}",
-            "offset": "0",
-            "Content-Type": "application/octet-stream",
-            "file_size": str(size),
-        },
-        data=body,
-        timeout=1800,
-    )
-    if r.status_code >= 400:
-        raise RuntimeError(f"Upload nije uspio: {r.status_code} {r.text}")
+    size = len(body)
+    container_id, last_error = None, ""
+    for attempt in range(1, 7):
+        cid, uri = _create_container(caption)
+        chunked = attempt % 2 == 0
+        log(f"Upload {video.name} ({size / 1e6:.1f} MB) -> container {cid} (pokušaj {attempt}, chunked={chunked})")
+        if chunked:
+            r = _upload_chunked(uri, body)
+        else:
+            r = requests.post(
+                uri,
+                headers={"Authorization": f"OAuth {ig_token()}", "offset": "0", "file_size": str(size)},
+                data=body,
+                timeout=1800,
+            )
+        if r.status_code < 400:
+            container_id = cid
+            break
+        last_error = f"{r.status_code} {r.text}"
+        log("Upload odbijen:", last_error)
+        time.sleep(15 * attempt)
+    if not container_id:
+        raise RuntimeError(f"Upload nije uspio ni nakon 6 pokušaja: {last_error}")
 
     deadline = time.time() + 30 * 60
     while True:
