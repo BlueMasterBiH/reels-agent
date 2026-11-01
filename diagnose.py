@@ -55,6 +55,29 @@ def upload(uri: str, video: Path, content_type: str | None) -> dict:
     return {"status": r.status_code, "body": r.text[:500]}
 
 
+def upload_chunked(uri: str, video: Path, chunk_mb: int = 4) -> dict:
+    data = video.read_bytes()
+    size, offset, step, last = len(data), 0, chunk_mb * 1024 * 1024, None
+    while offset < size:
+        chunk = data[offset:offset + step]
+        r = requests.post(
+            uri,
+            headers={
+                "Authorization": f"OAuth {agent.ig_token()}",
+                "offset": str(offset),
+                "file_size": str(size),
+            },
+            data=chunk,
+            timeout=600,
+        )
+        last = {"status": r.status_code, "body": r.text[:300], "offset": offset}
+        print("    chunk", last)
+        if r.status_code >= 400:
+            return last
+        offset += len(chunk)
+    return last
+
+
 def container_status(version: str, cid: str) -> dict:
     for _ in range(12):
         r = requests.get(
@@ -68,32 +91,41 @@ def container_status(version: str, cid: str) -> dict:
     return r
 
 
-def main() -> None:
-    video = Path(tempfile.mkdtemp()) / "test.mp4"
-    make_test_video(video)
-    print("Testni video:", agent.probe(video))
-
-    variants = [
-        ("v25.0", True, None),
-        ("v25.0", False, None),
-        ("v25.0", True, "application/x-www-form-urlencoded"),
-        ("v23.0", True, None),
-        ("v23.0", False, None),
-    ]
-    for version, trial, ctype in variants:
-        name = f"{version} trial={trial} content-type={ctype}"
-        print(f"\n=== {name}")
-        c = create_container(version, trial)
+def try_variant(name: str, video: Path, chunked: bool) -> None:
+    print(f"\n=== {name} ({video.stat().st_size / 1e6:.1f} MB, chunked={chunked})")
+    c = create_container("v25.0", True)
+    body = c["body"]
+    if "id" not in body:
         print("  kontejner:", c)
-        body = c["body"]
-        if "id" not in body:
-            continue
-        uri = body.get("uri") or f"https://rupload.facebook.com/ig-api-upload/{version}/{body['id']}"
-        print("  upload uri:", uri)
-        u = upload(uri, video, ctype)
-        print("  upload:", u)
-        if u["status"] < 400:
-            print("  status kontejnera:", container_status(version, body["id"]))
+        return
+    uri = body.get("uri")
+    u = upload_chunked(uri, video) if chunked else upload(uri, video, None)
+    print("  upload:", u)
+    if u and u["status"] < 400:
+        print("  status kontejnera:", container_status("v25.0", body["id"]))
+
+
+def main() -> None:
+    work = Path(tempfile.mkdtemp())
+    big = work / "big.mp4"
+    subprocess.run(
+        ["ffmpeg", "-y", "-loglevel", "error",
+         "-f", "lavfi", "-i", "testsrc2=size=1080x1920:rate=25",
+         "-f", "lavfi", "-i", "sine=frequency=440:sample_rate=48000",
+         "-t", "58", "-c:v", "libx264", "-pix_fmt", "yuv420p", "-b:v", "2500k",
+         "-c:a", "aac", "-ac", "2", "-movflags", "+faststart", str(big)],
+        check=True,
+    )
+    try_variant("sintetički 58s", big, chunked=False)
+    try_variant("sintetički 58s", big, chunked=True)
+
+    session = agent.drive_session()
+    f = agent.list_videos(session, agent.DRIVE_FOLDERS[0])[0]
+    src = work / "src.mp4"
+    agent.download(session, f["id"], src)
+    real = agent.prepare_for_instagram(src, work)
+    try_variant(f"pravi video {f['name']}", real, chunked=False)
+    try_variant(f"pravi video {f['name']}", real, chunked=True)
 
 
 if __name__ == "__main__":
