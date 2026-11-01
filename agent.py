@@ -456,6 +456,9 @@ Pravila:
 - Na kraju 3-6 relevantnih hashtagova.
 - Piši na istom jeziku kao titlovi u videu (ako su na bosanskom/hrvatskom/srpskom, piši ijekavicom na bosanskom).
 - Bez izmišljanja činjenica koje nisu u videu. Bez clickbaita koji video ne ispunjava.
+- Ne izmišljaj lične izjave, priče ili rangiranja autora (npr. "htio sam ovo zadržati za sebe",
+  "zadnji je najjači", "ovo niko ne zna") ako to ne piše u titlovima.
+- Piši isključivo latinicom (bez ćiriličnih slova).
 - Emojiji umjereno (0-3).
 {extra}
 Vrati SAMO tekst captiona između <caption> i </caption>, bez ikakvog drugog teksta."""
