@@ -129,4 +129,6 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    import os
+    if os.environ.get("DIAG_UPLOAD") == "1":
+        main()
