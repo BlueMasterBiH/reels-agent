@@ -58,7 +58,8 @@ U repou otvori **Settings → Secrets and variables → Actions** i dodaj:
 | `IG_ACCESS_TOKEN` | token iz koraka 1 |
 | `IG_USER_ID` | *(opcionalno)* Instagram business account ID - ako ga nema, agent ga sam nađe preko tokena i ispiše u logu |
 | `GDRIVE_SA_JSON` | cijeli sadržaj JSON ključa service accounta |
-| `ANTHROPIC_API_KEY` | Claude API ključ |
+| `CLAUDE_CODE_OAUTH_TOKEN` | token iz `claude setup-token` - caption ide preko tvoje Claude pretplate (preporučeno) |
+| `ANTHROPIC_API_KEY` | *(alternativa)* Claude API ključ s kreditom - koristi se samo ako nema `CLAUDE_CODE_OAUTH_TOKEN` |
 | `SMTP_USER` | Gmail adresa s koje se šalje |
 | `SMTP_PASSWORD` | App password |
 
