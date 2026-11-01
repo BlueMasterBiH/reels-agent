@@ -160,6 +160,7 @@ def _create_container(caption: str) -> tuple[str, str]:
         media_type="REELS",
         upload_type="resumable",
         caption=caption,
+        share_to_feed="false",
         trial_params=json.dumps({"graduation_strategy": "MANUAL"}),
     )
     cid = container["id"]
@@ -226,8 +227,14 @@ def publish_trial_reel(video: Path, caption: str) -> dict:
         time.sleep(20)
 
     media_id = graph("POST", f"{ig_user()}/media_publish", creation_id=container_id)["id"]
-    info = graph("GET", media_id, fields="permalink,timestamp")
-    return {"media_id": media_id, "permalink": info.get("permalink"), "timestamp": info.get("timestamp")}
+    info = graph("GET", media_id, fields="permalink,timestamp,is_shared_to_feed")
+    return {
+        "media_id": media_id,
+        "permalink": info.get("permalink"),
+        "timestamp": info.get("timestamp"),
+        # trial reel se ne dijeli pratiocima; True znači da je Instagram objavio običan reel
+        "is_shared_to_feed": info.get("is_shared_to_feed"),
+    }
 
 
 # ---------------------------------------------------------------- najbolje vrijeme
@@ -603,6 +610,9 @@ def ensure_plan(state: dict, now_local: datetime) -> None:
 
 
 def maybe_post(state: dict, now: datetime, now_local: datetime) -> None:
+    if state.get("paused") and not FORCE_POST:
+        log("Objave su pauzirane (state.paused) - preskačem")
+        return
     plan = state.get("plan")
     if not plan or plan["done"] or plan["date"] != now_local.date().isoformat():
         return
@@ -644,6 +654,13 @@ def maybe_post(state: dict, now: datetime, now_local: datetime) -> None:
         state["used_files"].append(f["id"])
         state["next_folder_index"] = (folder_idx + 1) % len(DRIVE_FOLDERS)
         plan["done"] = True
+        if result.get("is_shared_to_feed"):
+            send_email(
+                "⚠️ Reel NIJE objavljen kao trial",
+                f"Instagram je \"{f['name']}\" objavio kao običan reel (vidljiv pratiocima), iako je tražen trial.\n"
+                f"{result.get('permalink')}\n\nAgent pauzira dalje objave dok se ovo ne riješi.",
+            )
+            state["paused"] = True
         check_at = (now + timedelta(hours=CHECK_AFTER_HOURS)).astimezone(LOCAL_TZ)
         send_email(
             f"Objavljen trial reel: {f['name']}",

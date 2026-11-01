@@ -11,7 +11,8 @@
       "media_id": "18078829985739170",
       "permalink": "https://www.instagram.com/reel/DfNlCDAnK71/",
       "timestamp": "2026-11-01T20:22:02+0000",
-      "checked": false
+      "checked": false,
+      "is_shared_to_feed": true
     }
   ],
   "used_files": [
@@ -24,5 +25,6 @@
     "reason": "prva objava, zakazana za večeras",
     "done": true,
     "attempts": 1
-  }
+  },
+  "paused": true
 }
