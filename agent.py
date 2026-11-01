@@ -418,7 +418,48 @@ Pravila:
 Vrati SAMO tekst captiona između <caption> i </caption>, bez ikakvog drugog teksta."""
 
 
+def extract_caption(text: str) -> str:
+    import re
+
+    blocks = [b.strip() for b in re.findall(r"<caption>(.*?)</caption>", text, flags=re.S)]
+    blocks = [b for b in blocks if len(b) >= 20]
+    if not blocks:
+        raise RuntimeError(f"Claude nije vratio caption. Odgovor:\n{text[-3000:]}")
+    return blocks[-1][:2200]  # Instagram limit
+
+
 def write_caption(frames: list[Path], filename: str) -> str:
+    """Caption preko Claude pretplate (Claude Code token) ako postoji, inače preko API ključa."""
+    if os.environ.get("CLAUDE_CODE_OAUTH_TOKEN", "").strip():
+        return write_caption_claude_code(frames, filename)
+    return write_caption_api(frames, filename)
+
+
+def write_caption_claude_code(frames: list[Path], filename: str) -> str:
+    """Claude Code CLI u headless modu (-p), koristi pretplatu preko CLAUDE_CODE_OAUTH_TOKEN."""
+    extra = os.environ.get("CAPTION_CONTEXT", "").strip()
+    extra = f"\nKontekst o profilu/brendu: {extra}\n" if extra else ""
+    frame_list = "\n".join(f"- {f.name}" for f in frames)
+    prompt = (
+        f"U ovom folderu su kadrovi iz videa \"{filename}\". Pročitaj SVE ove slike alatom Read, redom:\n"
+        f"{frame_list}\n\n" + CAPTION_PROMPT.format(extra=extra)
+    )
+    child_env = {k: v for k, v in os.environ.items() if k not in ("ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN")}
+    result = subprocess.run(
+        ["claude", "-p", prompt, "--allowedTools", "Read", "--output-format", "text"],
+        cwd=frames[0].parent,
+        env=child_env,
+        stdin=subprocess.DEVNULL,
+        capture_output=True,
+        text=True,
+        timeout=900,
+    )
+    if result.returncode != 0:
+        raise RuntimeError(f"Claude Code greška ({result.returncode}): {result.stderr[-2000:] or result.stdout[-2000:]}")
+    return extract_caption(result.stdout)
+
+
+def write_caption_api(frames: list[Path], filename: str) -> str:
     import anthropic
 
     content: list[dict] = []
@@ -446,13 +487,7 @@ def write_caption(frames: list[Path], filename: str) -> str:
     )
     if response.stop_reason == "refusal":
         raise RuntimeError(f"Claude je odbio zahtjev: {response.stop_details}")
-    text = "".join(b.text for b in response.content if b.type == "text")
-    if "<caption>" in text and "</caption>" in text:
-        text = text.split("<caption>", 1)[1].split("</caption>", 1)[0]
-    caption = text.strip()
-    if not caption:
-        raise RuntimeError("Claude nije vratio caption")
-    return caption[:2200]  # Instagram limit
+    return extract_caption("".join(b.text for b in response.content if b.type == "text"))
 
 
 # ---------------------------------------------------------------- koraci

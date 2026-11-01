@@ -34,12 +34,15 @@ jobs:
           cache: pip
       - run: sudo apt-get install -y -qq ffmpeg > /dev/null
       - run: pip install -q -r requirements.txt
+      - name: Instaliraj Claude Code (caption preko pretplate)
+        run: npm install -g @anthropic-ai/claude-code > /dev/null
       - name: Pokreni agenta
         env:
           IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
           IG_USER_ID: ${{ secrets.IG_USER_ID }}
           GDRIVE_SA_JSON: ${{ secrets.GDRIVE_SA_JSON }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           SMTP_USER: ${{ secrets.SMTP_USER }}
           SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
           SMTP_HOST: ${{ vars.SMTP_HOST }}
