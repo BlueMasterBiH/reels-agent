@@ -11,8 +11,11 @@
       "media_id": "18078829985739170",
       "permalink": "https://www.instagram.com/reel/DfNlCDAnK71/",
       "timestamp": "2026-11-01T20:22:02+0000",
-      "checked": false,
-      "is_shared_to_feed": true
+      "checked": true,
+      "is_shared_to_feed": true,
+      "views_at_check": 1071,
+      "checked_at": "2026-11-01T22:49:27.831018+00:00",
+      "passed": true
     }
   ],
   "used_files": [
