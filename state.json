@@ -1,12 +1,28 @@
 {
-  "posts": [],
-  "used_files": [],
-  "next_folder_index": 0,
+  "posts": [
+    {
+      "file_id": "1itbzb4gGY5k2ONZQL-p430Sl7BVw2dGF",
+      "file_name": "Anel2Final.mp4",
+      "folder_index": 0,
+      "posted_at": "2026-11-01T20:20:59.526586+00:00",
+      "caption": "5 \"tajnih kodova\" za Claude. Jedan riječ u promptu mijenja cijeli odgovor 👀\n\nPokazujem ti ih na živom primjeru: šta upišeš, šta Claude vrati i zašto je razlika ogromna.\n\nVećina ljudi piše prompt kao običnu poruku. Zato dobiju običan odgovor.\n\nPogledaj do kraja da vidiš svih 5. Četvrti sam htio zadržati za sebe.\n\nSačuvaj reel da ti ostane pri ruci, a pošalji ga nekome ko svaki dan koristi Claude.\n\n#claude #ai #vjestackainteligencija #prompting #automatizacija #biznis",
+      "planned_hour": 20,
+      "plan_reason": "prva objava, zakazana za večeras",
+      "media_id": "18078829985739170",
+      "permalink": "https://www.instagram.com/reel/DfNlCDAnK71/",
+      "timestamp": "2026-11-01T20:22:02+0000",
+      "checked": false
+    }
+  ],
+  "used_files": [
+    "1itbzb4gGY5k2ONZQL-p430Sl7BVw2dGF"
+  ],
+  "next_folder_index": 1,
   "plan": {
     "date": "2026-11-01",
     "hour": 20,
     "reason": "prva objava, zakazana za večeras",
-    "done": false,
-    "attempts": 0
+    "done": true,
+    "attempts": 1
   }
 }
