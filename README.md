@@ -6,7 +6,7 @@ Automatski objavljuje **trial reelove** na Instagram iz dva Google Drive foldera
 
 GitHub Actions pokreće `agent.py` **svaki sat**. Svaki put agent:
 
-1. **Provjerava trial reelove.** Za svaki reel kojem je prošlo 6 sati od objave pročita broj pregleda. Ako ima **≥ 1000**, šalje email na `anel@webmajstor.ba` s linkom. Ti onda u Instagram aplikaciji prebaciš reel na feed. Ako ima manje, dobiješ kratki izvještaj i reel ostaje trial.
+1. **Provjerava trial reelove.** Za svaki reel kojem su prošla 2 sata od objave pročita broj pregleda. Ako ima **≥ 1000**, šalje email na `anel@webmajstor.ba` s linkom. Ti onda u Instagram aplikaciji prebaciš reel na feed. Ako ima manje, dobiješ kratki izvještaj i reel ostaje trial.
    - Instagram API ne dozvoljava da se reel prebaci na feed automatski, pa taj jedan klik ostaje ručni.
 2. **Planira objavu.** Objava ide svaki drugi dan. Na dan objave agent odredi najbolji sat ovim redom:
    - aktivnost tvojih pratilaca po satima za taj dan u sedmici (Instagram `online_followers`, zadnjih 30 dana);
@@ -81,6 +81,6 @@ Postavke su env varijable u workflowu:
 |---|---|---|
 | `POST_EVERY_DAYS` | 2 | razmak između objava (dani) |
 | `VIEWS_THRESHOLD` | 1000 | prag pregleda |
-| `CHECK_AFTER_HOURS` | 6 | nakon koliko sati se provjerava (zbog rasporeda po satu provjera je između 6. i 7. sata) |
+| `CHECK_AFTER_HOURS` | 2 | nakon koliko sati se provjerava (zbog rasporeda po satu provjera je između 2. i 3. sata) |
 | `EARLIEST_HOUR` / `LATEST_HOUR` | 8 / 22 | dozvoljeni sati objave |
 | `MAX_UPLOAD_MB` | 280 | veći videi se kompresuju |
