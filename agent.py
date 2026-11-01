@@ -169,17 +169,18 @@ def publish_trial_reel(video: Path, caption: str) -> dict:
     )
     size = video.stat().st_size
     log(f"Upload {video.name} ({size / 1e6:.1f} MB) -> container {container_id}")
-    with video.open("rb") as fh:
-        r = requests.post(
-            upload_uri,
-            headers={
-                "Authorization": f"OAuth {ig_token()}",
-                "offset": "0",
-                "file_size": str(size),
-            },
-            data=fh,
-            timeout=1800,
-        )
+    body = video.read_bytes()  # cijeli fajl odjednom (max ~280 MB)
+    r = requests.post(
+        upload_uri,
+        headers={
+            "Authorization": f"OAuth {ig_token()}",
+            "offset": "0",
+            "Content-Type": "application/octet-stream",
+            "file_size": str(size),
+        },
+        data=body,
+        timeout=1800,
+    )
     if r.status_code >= 400:
         raise RuntimeError(f"Upload nije uspio: {r.status_code} {r.text}")
 
@@ -360,24 +361,38 @@ def duration_seconds(video: Path) -> float:
     return float(out)
 
 
-def shrink_if_needed(video: Path, workdir: Path) -> Path:
-    limit = MAX_UPLOAD_MB * 1_000_000
-    if video.stat().st_size <= limit:
-        return video
+def probe(video: Path) -> str:
+    out = subprocess.run(
+        ["ffprobe", "-v", "error", "-show_entries",
+         "stream=codec_type,codec_name,profile,width,height,pix_fmt,r_frame_rate,bit_rate,sample_rate,channels"
+         ":format=duration,size,bit_rate,format_name", "-of", "compact", str(video)],
+        capture_output=True, text=True,
+    )
+    return out.stdout.strip()
+
+
+def prepare_for_instagram(video: Path, workdir: Path) -> Path:
+    """Uvijek prebaci video u format koji Instagram Reels preporučuje:
+    H.264 (high, yuv420p), max 1080 širine, max 30 fps, AAC 48 kHz stereo, moov atom na početku.
+    Bitrate se prilagodi tako da fajl stane ispod MAX_UPLOAD_MB."""
+    log("Izvorni video: " + probe(video).replace("\n", " | "))
     dur = duration_seconds(video)
-    # ciljani bitrate tako da fajl stane u limit (uz rezervu za audio)
-    video_kbps = max(1500, int(limit * 8 / dur / 1000 * 0.9) - 128)
+    limit = MAX_UPLOAD_MB * 1_000_000
+    video_kbps = min(8000, max(1500, int(limit * 8 / dur / 1000 * 0.9) - 128))
     out = workdir / "upload.mp4"
-    log(f"Video je {video.stat().st_size / 1e6:.0f} MB, kompresujem na ~{video_kbps} kbps")
     subprocess.run(
         [
             "ffmpeg", "-y", "-loglevel", "error", "-i", str(video),
-            "-vf", "scale='min(1080,iw)':-2", "-c:v", "libx264", "-preset", "veryfast",
-            "-b:v", f"{video_kbps}k", "-maxrate", f"{video_kbps}k", "-bufsize", f"{video_kbps * 2}k",
-            "-c:a", "aac", "-b:a", "128k", "-movflags", "+faststart", str(out),
+            "-map", "0:v:0", "-map", "0:a:0?",
+            "-vf", "scale='min(1080,iw)':-2:flags=lanczos,fps='min(30,source_fps)',format=yuv420p",
+            "-c:v", "libx264", "-profile:v", "high", "-level", "4.1", "-preset", "veryfast",
+            "-crf", "20", "-maxrate", f"{video_kbps}k", "-bufsize", f"{video_kbps * 2}k",
+            "-c:a", "aac", "-b:a", "128k", "-ar", "48000", "-ac", "2",
+            "-movflags", "+faststart", str(out),
         ],
         check=True,
     )
+    log(f"Pripremljen video: {out.stat().st_size / 1e6:.1f} MB | " + probe(out).replace("\n", " | "))
     return out
 
 
@@ -578,7 +593,7 @@ def maybe_post(state: dict, now: datetime, now_local: datetime) -> None:
         frames = extract_frames(src, workdir)
         caption = write_caption(frames, f["name"])
         log("Caption:\n" + caption)
-        upload = shrink_if_needed(src, workdir)
+        upload = prepare_for_instagram(src, workdir)
         if DRY_RUN:
             result = {"media_id": None, "permalink": None}
             log("DRY_RUN: preskačem objavu")
