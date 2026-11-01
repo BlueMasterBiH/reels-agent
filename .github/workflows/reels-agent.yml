@@ -1,9 +1,8 @@
 name: Reels agent
 
 on:
-  # Raspored privremeno isključen dok ne odobriš probni caption.
-  # schedule:
-  #   - cron: "17 * * * *"   # svaki sat (UTC)
+  schedule:
+    - cron: "17 * * * *"   # svaki sat (UTC)
   workflow_dispatch:
     inputs:
       force_post:

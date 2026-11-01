@@ -2,5 +2,11 @@
   "posts": [],
   "used_files": [],
   "next_folder_index": 0,
-  "plan": null
+  "plan": {
+    "date": "2026-11-01",
+    "hour": 20,
+    "reason": "prva objava, zakazana za večeras",
+    "done": false,
+    "attempts": 0
+  }
 }
