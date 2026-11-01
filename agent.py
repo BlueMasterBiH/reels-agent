@@ -430,9 +430,18 @@ def extract_caption(text: str) -> str:
 
 def write_caption(frames: list[Path], filename: str) -> str:
     """Caption preko Claude pretplate (Claude Code token) ako postoji, inače preko API ključa."""
-    if os.environ.get("CLAUDE_CODE_OAUTH_TOKEN", "").strip():
+    if subscription_token():
         return write_caption_claude_code(frames, filename)
     return write_caption_api(frames, filename)
+
+
+def subscription_token() -> str:
+    """Token pretplate (sk-ant-oat...) iz CLAUDE_CODE_OAUTH_TOKEN, ili ako je greškom stavljen u ANTHROPIC_API_KEY."""
+    token = os.environ.get("CLAUDE_CODE_OAUTH_TOKEN", "").strip()
+    if token:
+        return token
+    key = os.environ.get("ANTHROPIC_API_KEY", "").strip()
+    return key if key.startswith("sk-ant-oat") else ""
 
 
 def write_caption_claude_code(frames: list[Path], filename: str) -> str:
@@ -445,6 +454,7 @@ def write_caption_claude_code(frames: list[Path], filename: str) -> str:
         f"{frame_list}\n\n" + CAPTION_PROMPT.format(extra=extra)
     )
     child_env = {k: v for k, v in os.environ.items() if k not in ("ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN")}
+    child_env["CLAUDE_CODE_OAUTH_TOKEN"] = subscription_token()
     result = subprocess.run(
         ["claude", "-p", prompt, "--allowedTools", "Read", "--output-format", "text"],
         cwd=frames[0].parent,
