@@ -22,12 +22,6 @@
     "1itbzb4gGY5k2ONZQL-p430Sl7BVw2dGF"
   ],
   "next_folder_index": 1,
-  "plan": {
-    "date": "2026-11-01",
-    "hour": 20,
-    "reason": "prva objava, zakazana za večeras",
-    "done": true,
-    "attempts": 1
-  },
+  "plan": null,
   "paused": true
 }
