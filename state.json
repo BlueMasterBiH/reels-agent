@@ -22,6 +22,12 @@
     "1itbzb4gGY5k2ONZQL-p430Sl7BVw2dGF"
   ],
   "next_folder_index": 1,
-  "plan": null,
+  "plan": {
+    "date": "2026-11-03",
+    "hour": 20,
+    "reason": "aktivnost pratilaca (online_followers, zadnjih 30 dana)",
+    "done": false,
+    "attempts": 0
+  },
   "paused": true
 }
