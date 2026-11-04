@@ -39,7 +39,9 @@ jobs:
         with:
           python-version: "3.12"
           cache: pip
-      - run: sudo apt-get install -y -qq ffmpeg > /dev/null
+      - name: Instaliraj ffmpeg
+        uses: FedericoCarboni/setup-ffmpeg@v3
+        timeout-minutes: 5
       - run: pip install -q -r requirements.txt
       - name: Instaliraj Claude Code (caption preko pretplate)
         run: npm install -g @anthropic-ai/claude-code > /dev/null
