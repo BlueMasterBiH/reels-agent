@@ -17,6 +17,10 @@ on:
         description: "Dijagnostika Instagram uploada (ništa ne objavljuje)"
         type: boolean
         default: false
+      caption_for:
+        description: "Samo napiši caption za video čije ime sadrži ovaj tekst (ništa ne objavljuje)"
+        type: string
+        default: ""
 
 concurrency:
   group: reels-agent
@@ -56,9 +60,11 @@ jobs:
           FORCE_POST: ${{ inputs.force_post && '1' || '0' }}
           DRY_RUN: ${{ inputs.dry_run && '1' || '0' }}
         run: |
-          if [ "${{ inputs.diagnose }}" = "true" ]; then python inspect_media.py; python diagnose.py; else python agent.py; fi
+          if [ -n "${{ inputs.caption_for }}" ]; then CAPTION_FOR="${{ inputs.caption_for }}" python caption_only.py
+          elif [ "${{ inputs.diagnose }}" = "true" ]; then python inspect_media.py; python diagnose.py
+          else python agent.py; fi
       - name: Sačuvaj stanje
-        if: always() && inputs.dry_run != true && inputs.diagnose != true
+        if: always() && inputs.dry_run != true && inputs.diagnose != true && inputs.caption_for == ''
         run: |
           git config user.name "reels-agent"
           git config user.email "reels-agent@users.noreply.github.com"
